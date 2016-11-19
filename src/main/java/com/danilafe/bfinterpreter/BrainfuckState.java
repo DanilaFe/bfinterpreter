@@ -134,7 +134,7 @@ public class BrainfuckState {
 	 */
 	public int executeInstructions() {
 		int returnCode = 0;
-		while ((returnCode = executeInstruction()) == 0)
+		while (!Thread.currentThread().isInterrupted() && (returnCode = executeInstruction()) == 0)
 			;
 		return returnCode;
 	}
