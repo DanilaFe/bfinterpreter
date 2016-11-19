@@ -3,15 +3,17 @@ package com.danilafe.bfinterpreter;
 import java.util.Stack;
 
 /**
- * A Brainfuck program state.
- * Holds all necessary information to interpret a Brainfuck program. 
+ * A Brainfuck program state. Holds all necessary information to interpret a
+ * Brainfuck program.
+ * 
  * @author vanilla
  *
  */
 public class BrainfuckState {
 
 	/**
-	 * Return code that represents the interpreter reaching the set limit of instructions
+	 * Return code that represents the interpreter reaching the set limit of
+	 * instructions
 	 */
 	public static final int ERR_LIMIT_REACHED = 1;
 	/**
@@ -23,7 +25,8 @@ public class BrainfuckState {
 	 */
 	public static final int ERR_INVALID_INSTRUCTION = 3;
 	/**
-	 * Return code that represents the data pointer moving outside of data bounds.
+	 * Return code that represents the data pointer moving outside of data
+	 * bounds.
 	 */
 	public static final int ERR_BOUNDS = 4;
 	/**
@@ -39,6 +42,8 @@ public class BrainfuckState {
 	int remainingInstructions;
 	int programIndex;
 	int dataPointer;
+	long timeLimit;
+	long startTime;
 	Stack<Integer> openBraces;
 	String output;
 
@@ -51,13 +56,47 @@ public class BrainfuckState {
 	 *            the max number of instructions to execute.
 	 */
 	public BrainfuckState(String program, int remainingInstructions) {
+		this(program, remainingInstructions, -1);
+	}
+
+	/**
+	 * Creates a new Brainfuck state.
+	 * 
+	 * @param program
+	 *            the program to interpret.
+	 * @param timeLimit
+	 *            the maximum number of milliseconds for the program to run.
+	 */
+	public BrainfuckState(String program, long timeLimit) {
+		this(program, -1, timeLimit);
+	}
+
+	/**
+	 * Creates a new Brainfuck state.
+	 * @param program the program to interpret.
+	 * @param remainingInstructions the max number of instructions to execute.
+	 * @param timeLimit the maximum number of milliseconds for the program to run.
+	 */
+	public BrainfuckState(String program, int remainingInstructions, long timeLimit) {
+		this(program);
+		this.timeLimit = timeLimit;
+		this.remainingInstructions = remainingInstructions;
+	}
+
+	/**
+	 * Creates a new Brainfuck state.
+	 * @param program the program to interpret.
+	 */
+	public BrainfuckState(String program) {
 		this.program = program.toCharArray();
 		this.memory = new int[INITIAL_SIZE];
-		this.remainingInstructions = remainingInstructions;
+		this.remainingInstructions = -1;
 		this.programIndex = 0;
-		dataPointer = 0;
+		this.dataPointer = 0;
 		this.openBraces = new Stack<Integer>();
-		output = "";
+		this.output = "";
+		this.timeLimit = -1;
+		this.startTime = System.currentTimeMillis();
 	}
 
 	void growMemory() {
@@ -67,11 +106,14 @@ public class BrainfuckState {
 
 	/**
 	 * Executes a single instruction from the program.
+	 * 
 	 * @return the return code signifying the result of the instruction.
 	 */
 	int executeInstruction() {
 		int returnCode = 0;
 		if (remainingInstructions == 0) {
+			returnCode = ERR_LIMIT_REACHED;
+		} else if (timeLimit >= 0 && startTime + timeLimit < System.currentTimeMillis()) {
 			returnCode = ERR_LIMIT_REACHED;
 		} else {
 			if (remainingInstructions > 0) {
@@ -130,17 +172,19 @@ public class BrainfuckState {
 
 	/**
 	 * Runs as many instructions as the parameters allow.
+	 * 
 	 * @return the first nonzero return code.
 	 */
 	public int executeInstructions() {
 		int returnCode = 0;
-		while (!Thread.currentThread().isInterrupted() && (returnCode = executeInstruction()) == 0)
+		while ((returnCode = executeInstruction()) == 0)
 			;
 		return returnCode;
 	}
 
 	/**
 	 * Gets the output of the program so far.
+	 * 
 	 * @return the string containing the output of the interpreter.
 	 */
 	public String getOutput() {
